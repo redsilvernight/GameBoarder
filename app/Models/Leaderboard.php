@@ -26,14 +26,22 @@ class Leaderboard extends Model
 {
 	protected $table = 'leaderboards';
 
-	protected $casts = [
-		'game_id' => 'int'
-	];
-
 	protected $fillable = [
 		'name',
-		'game_id'
+		'game_id',
+		'is_unique'
 	];
+
+	protected $casts = [
+		'is_unique' => 'boolean'
+	];
+
+	protected static function booted()
+	{
+		static::deleting(function ($leaderboard) {
+			$leaderboard->scores()->delete();
+		});
+	}
 
 	public function game(): BelongsTo
 	{

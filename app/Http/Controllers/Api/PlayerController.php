@@ -5,11 +5,19 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Player;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
-class PlayerController extends Controller
+class PlayerController extends Controller implements HasMiddleware
 {
+    public static function middleware(): array
+    {
+        return [
+            new Middleware('role:admin', only: ['index']),
+        ];
+    }
     /**
      * Display a listing of the resource.
      */
@@ -42,8 +50,14 @@ class PlayerController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Player $player)
+    public function show(Request $request, Player $player)
     {
+        if ($request->user()->role != "admin") {
+            if ($player->game->user_id !== $request->user()->id) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+        }
+
         return $player;
     }
 
@@ -52,14 +66,13 @@ class PlayerController extends Controller
      */
     public function update(Request $request, Player $player)
     {
+        if ($player->game->user_id !== $request->user()->id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'password' => 'sometimes|string|min:6',
-            'game_id' => [
-                'required',
-                'exists:games,id',
-                Rule::exists('games', 'id')->where('user_id', $request->user()->id)
-            ]
         ]);
 
         if (isset($validated['password'])) {
@@ -74,8 +87,14 @@ class PlayerController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Player $player)
+    public function destroy(Request $request, Player $player)
     {
+        if ($request->user()->role != "admin") {
+            if ($player->game->user_id !== $request->user()->id) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+        }
+        
         $player->delete();
 
         return response()->json(null, 204);

@@ -8,7 +8,7 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -27,7 +27,7 @@ use Laravel\Sanctum\HasApiTokens;
  *
  * @package App\Models
  */
-class User extends Model
+class User extends Authenticatable
 {
 	use HasApiTokens, HasFactory, Notifiable;
 	protected $table = 'users';
@@ -46,11 +46,22 @@ class User extends Model
 		'email',
 		'email_verified_at',
 		'password',
-		'access_token'
+		'access_token',
+		'role'
 	];
 
 	public function games(): HasMany
 	{
 		return $this->hasMany(Game::class);
+	}
+
+	public function isAdmin(): bool
+	{
+		return $this->role === 'admin';
+	}
+
+	public function isUser(): bool
+	{
+		return $this->role === 'user';
 	}
 }
