@@ -37,9 +37,10 @@ class LeaderboardController extends Controller implements HasMiddleware
             'is_unique' => 'sometimes|boolean',
             'game_id' => [
                 'required',
-                'exists:games,id',
-                Rule::exists('games', 'id')->where('user_id', $request->user()->id)
-            ]
+                Rule::exists('games', 'id')->where('user_id', $request->user()->id),
+            ],
+        ], [
+            'game_id.exists' => 'Ce jeu ne vous appartient pas ou n’existe pas.',
         ]);
 
         $leaderboard = Leaderboard::create($validated);
