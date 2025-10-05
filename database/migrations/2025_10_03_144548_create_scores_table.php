@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('scores', function (Blueprint $table) {
-            $table->foreignId('player_id')->constrained('players')->onDelete('cascade');
-            $table->foreignId('leaderboard_id')->constrained('leaderboards')->onDelete('cascade');
+            $table->id(); // PK auto-increment
+            $table->foreignId('player_id')->constrained()->onDelete('cascade');
+            $table->foreignId('leaderboard_id')->constrained()->onDelete('cascade');
             $table->integer('score');
             $table->timestamps();
-
-            $table->primary(['player_id', 'leaderboard_id']);
+            $table->unique(['player_id', 'leaderboard_id'], 'unique_player_leaderboard');
         });
     }
 
