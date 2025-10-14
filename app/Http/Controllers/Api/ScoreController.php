@@ -51,10 +51,7 @@ class ScoreController extends Controller implements HasMiddleware
                 // Met simplement à jour le score existant
                 $existingScore->update(['score' => $validated['score']]);
 
-                return response()->json([
-                    'message' => 'Score updated successfully (unique leaderboard)',
-                    'score' => $existingScore
-                ], 200);
+                return response()->json($existingScore, 200);
             }
         }
 
@@ -65,10 +62,7 @@ class ScoreController extends Controller implements HasMiddleware
             'score' => $validated['score'],
         ]);
 
-        return response()->json([
-            'message' => 'Score created successfully',
-            'score' => $score
-        ], 201);
+        return response()->json($score, 201);
     }
 
     public function storeHighScore(Request $request)
@@ -101,10 +95,7 @@ class ScoreController extends Controller implements HasMiddleware
             if ($bestScore) {
                 if ($validated['score'] > $bestScore->score) {
                     $bestScore->update(['score' => $validated['score']]);
-                    return response()->json([
-                        'message' => 'Score updated',
-                        'score' => $bestScore
-                    ], 200);
+                    return response()->json($bestScore, 200);
                 }
 
                 return response()->json([
