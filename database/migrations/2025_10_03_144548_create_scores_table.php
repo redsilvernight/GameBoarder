@@ -17,7 +17,6 @@ return new class extends Migration
             $table->foreignId('leaderboard_id')->constrained()->onDelete('cascade');
             $table->integer('score');
             $table->timestamps();
-            $table->unique(['player_id', 'leaderboard_id'], 'unique_player_leaderboard');
         });
     }
 

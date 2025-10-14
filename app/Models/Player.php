@@ -28,6 +28,7 @@ class Player extends Model
 	protected $table = 'players';
 
 	protected $casts = [
+		'created_at' => 'datetime:d/m/Y à H:i',
 		'game_id' => 'int'
 	];
 

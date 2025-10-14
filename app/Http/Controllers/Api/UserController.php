@@ -26,10 +26,8 @@ class UserController extends Controller implements HasMiddleware
 
     public function show(Request $request, User $user)
     {
-        if ($request->user()->role != "admin") {
-            if ($user->user_id !== $request->user()->id) {
-                return response()->json(['error' => 'Unauthorized'], 403);
-            }
+        if ($user->id !== $request->user()->id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
         }
 
         return User::with('games')->findOrFail($user->id);

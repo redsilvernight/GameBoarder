@@ -32,7 +32,14 @@ class PlayerController extends Controller implements HasMiddleware
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('players')->where(function ($query) use ($request) {
+                    return $query->where('game_id', $request->game_id);
+                })
+            ],
             'password' => 'required|string|min:6',
             'game_id' => [
                 'required',
@@ -40,7 +47,8 @@ class PlayerController extends Controller implements HasMiddleware
                 Rule::exists('games', 'id')->where('user_id', $request->user()->id)
             ],
         ], [
-            'game_id.exists' => 'Ce jeu ne vous appartient pas ou n’existe pas.',
+            'game_id.exists' => "Ce jeu ne vous appartient pas ou n'existe pas.",
+            'name.unique' => 'Ce nom de joueur existe déjà pour ce jeu.',
         ]);
         
         $validated['password'] = Hash::make($validated['password']);
@@ -61,6 +69,30 @@ class PlayerController extends Controller implements HasMiddleware
         }
 
         return $player;
+    }
+
+    public function getByName(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string',
+            'game_id' => [
+                'required',
+                'exists:games,id',
+                Rule::exists('games', 'id')->where('user_id', $request->user()->id)
+            ],
+        ], [
+            'game_id.exists' => "Ce jeu ne vous appartient pas ou n'existe pas.",
+        ]);
+
+        $player = Player::where('name', $validated['name'])
+            ->where('game_id', $validated['game_id'])
+            ->first();
+
+        if (!$player) {
+            return response()->json(['error' => 'Player not found'], 404);
+        }
+
+        return response()->json($player);
     }
 
     /**
@@ -99,6 +131,6 @@ class PlayerController extends Controller implements HasMiddleware
         
         $player->delete();
 
-        return response()->json(null, 204);
+        return response()->json(['message' => 'Player deleted successfully'], 200);
     }
 }

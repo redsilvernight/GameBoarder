@@ -14,6 +14,7 @@ class Score extends Model
 	// protected $primaryKey = null;
 
 	protected $casts = [
+		'created_at' => 'datetime:d/m/Y à H:i',
 		'player_id' => 'int',
 		'leaderboard_id' => 'int',
 		'score' => 'int'
@@ -25,6 +26,9 @@ class Score extends Model
 		'score'
 	];
 
+	protected $appends = ['player_name'];
+	protected $hidden = ['player_id', 'player'];
+
 	public function leaderboard(): BelongsTo
 	{
 		return $this->belongsTo(Leaderboard::class);
@@ -33,5 +37,10 @@ class Score extends Model
 	public function player(): BelongsTo
 	{
 		return $this->belongsTo(Player::class);
+	}
+
+	public function getPlayerNameAttribute()
+	{
+		return $this->player?->name ?? 'Joueur supprimé';
 	}
 }

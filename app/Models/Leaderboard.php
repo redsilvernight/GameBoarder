@@ -33,7 +33,8 @@ class Leaderboard extends Model
 	];
 
 	protected $casts = [
-		'is_unique' => 'boolean'
+		'is_unique' => 'boolean',
+		'created_at' => 'datetime:d/m/Y à H:i',
 	];
 
 	protected static function booted()

@@ -35,48 +35,40 @@ class ScoreController extends Controller implements HasMiddleware
         $validated = $request->validate([
             'player_id' => 'required|exists:players,id',
             'leaderboard_id' => 'required|exists:leaderboards,id',
-            'score' => 'required|integer'
+            'score' => 'required|numeric',
         ]);
 
-        // Récupérer le leaderboard avec son jeu
-        $leaderboard = Leaderboard::with('game')->findOrFail($validated['leaderboard_id']);
+        $player = Player::findOrFail($validated['player_id']);
+        $leaderboard = Leaderboard::findOrFail($validated['leaderboard_id']);
 
-        // Vérifier que le jeu du leaderboard appartient à l'utilisateur
-        if ($leaderboard->game->user_id !== $request->user()->id) {
-            return response()->json(['error' => 'Unauthorized - Leaderboard does not belong to your game'], 403);
-        }
-
-        // Récupérer le joueur avec son jeu
-        $player = Player::with('game')->findOrFail($validated['player_id']);
-
-        // Vérifier que le joueur appartient à un jeu de l'utilisateur
-        if ($player->game->user_id !== $request->user()->id) {
-            return response()->json(['error' => 'Unauthorized - Player does not belong to your game'], 403);
-        }
-
+        // Vérifie si le leaderboard est unique
         if ($leaderboard->is_unique) {
-            // Vérifier si un score existe déjà
-            $existingScore = Score::where('player_id', $validated['player_id'])
-                ->where('leaderboard_id', $validated['leaderboard_id'])
+            $existingScore = Score::where('player_id', $player->id)
+                ->where('leaderboard_id', $leaderboard->id)
                 ->first();
 
             if ($existingScore) {
-                // Update uniquement si le nouveau score est meilleur
-                if ($validated['score'] > $existingScore->score) {
-                    $existingScore->update(['score' => $validated['score']]);
-                    return response()->json($existingScore, 200);
-                }
+                // Met simplement à jour le score existant
+                $existingScore->update(['score' => $validated['score']]);
+
                 return response()->json([
-                    'message' => 'Score not improved',
-                    'current_score' => $existingScore
+                    'message' => 'Score updated successfully (unique leaderboard)',
+                    'score' => $existingScore
                 ], 200);
             }
         }
 
-        // Créer un nouveau score (mode non-unique ou premier score en mode unique)
-        $score = Score::create($validated);
+        // Si le leaderboard n’est pas unique, ou si aucun score existant trouvé
+        $score = Score::create([
+            'player_id' => $player->id,
+            'leaderboard_id' => $leaderboard->id,
+            'score' => $validated['score'],
+        ]);
 
-        return response()->json($score, 201);
+        return response()->json([
+            'message' => 'Score created successfully',
+            'score' => $score
+        ], 201);
     }
 
     public function storeHighScore(Request $request)
@@ -87,52 +79,57 @@ class ScoreController extends Controller implements HasMiddleware
             'score' => 'required|integer'
         ]);
 
-        // Récupérer le leaderboard avec son jeu
         $leaderboard = Leaderboard::with('game')->findOrFail($validated['leaderboard_id']);
 
-        // Vérifier que le jeu du leaderboard appartient à l'utilisateur
         if ($leaderboard->game->user_id !== $request->user()->id) {
             return response()->json(['error' => 'Unauthorized - Leaderboard does not belong to your game'], 403);
         }
 
-        // Récupérer le joueur avec son jeu
         $player = Player::with('game')->findOrFail($validated['player_id']);
-
-        // Vérifier que le joueur appartient à un jeu de l'utilisateur
         if ($player->game->user_id !== $request->user()->id) {
             return response()->json(['error' => 'Unauthorized - Player does not belong to your game'], 403);
         }
 
-        // Récupérer le meilleur score existant du joueur
-        $existingScore = Score::where('player_id', $validated['player_id'])
+        // Récupérer le meilleur score actuel de ce joueur sur ce leaderboard
+        $bestScore = Score::where('player_id', $validated['player_id'])
             ->where('leaderboard_id', $validated['leaderboard_id'])
-            ->orderBy('score', 'desc')
+            ->orderByDesc('score')
             ->first();
 
-        // Si pas de score existant, créer
-        if (!$existingScore) {
+        if ($leaderboard->is_unique) {
+            // Mode unique → un seul score : update si meilleur, sinon rien
+            if ($bestScore) {
+                if ($validated['score'] > $bestScore->score) {
+                    $bestScore->update(['score' => $validated['score']]);
+                    return response()->json([
+                        'message' => 'Score updated',
+                        'score' => $bestScore
+                    ], 200);
+                }
+
+                return response()->json([
+                    'message' => 'Score not improved',
+                    'current_high_score' => $bestScore
+                ], 200);
+            }
+
+            // Premier score
             $score = Score::create($validated);
             return response()->json($score, 201);
         }
 
-        // Si le nouveau score est meilleur
-        if ($validated['score'] > $existingScore->score) {
-            if ($leaderboard->is_unique) {
-                // Mode unique : update le score existant
-                $existingScore->update(['score' => $validated['score']]);
-                return response()->json($existingScore, 200);
-            } else {
-                // Mode non-unique : créer un nouveau score
-                $score = Score::create($validated);
-                return response()->json($score, 201);
-            }
+        // Mode non-unique → plusieurs scores possibles, mais seulement si meilleur que le meilleur existant
+        if ($bestScore && $validated['score'] <= $bestScore->score) {
+            return response()->json([
+                'message' => 'Score not high enough to be recorded',
+                'current_high_score' => $bestScore
+            ], 200);
         }
 
-        // Score pas meilleur
-        return response()->json([
-            'message' => 'Score not improved',
-            'current_high_score' => $existingScore
-        ], 200);
+        // Nouveau meilleur score → enregistrer
+        $score = Score::create($validated);
+
+        return response()->json($score, 201);
     }
 
     /**
@@ -148,39 +145,21 @@ class ScoreController extends Controller implements HasMiddleware
         return $score;
     }
 
-    public function destroy(Request $request)
+    public function destroy(Request $request, Score $score)
     {
-        $validated = $request->validate([
-            'player_id' => 'required|integer|exists:players,id',
-            'leaderboard_id' => 'required|integer|exists:leaderboards,id'
-        ]);
+        // Vérification admin → autorisé direct
+        if ($request->user()->role !== 'admin') {
+            // Charger le joueur et le jeu associés au score
+            $score->load('player.game');
 
-        if ($request->user()->role != "admin") {
-            // Récupérer le leaderboard avec son jeu
-            $leaderboard = Leaderboard::with('game')->findOrFail($validated['leaderboard_id']);
-
-            // Vérifier que le jeu du leaderboard appartient à l'utilisateur
-            if ($leaderboard->game->user_id !== $request->user()->id) {
-                return response()->json(['error' => 'Unauthorized - Leaderboard does not belong to your game'], 403);
-            }
-
-            // Récupérer le joueur avec son jeu
-            $player = Player::with('game')->findOrFail($validated['player_id']);
-
-            // Vérifier que le joueur appartient à un jeu de l'utilisateur
-            if ($player->game->user_id !== $request->user()->id) {
-                return response()->json(['error' => 'Unauthorized - Player does not belong to your game'], 403);
+            // Vérifier que le jeu appartient à l'utilisateur connecté
+            if ($score->player->game->user_id !== $request->user()->id) {
+                return response()->json(['error' => 'Unauthorized - This score does not belong to your game'], 403);
             }
         }
 
-        $deleted = Score::where('player_id', $validated['player_id'])
-            ->where('leaderboard_id', $validated['leaderboard_id'])
-            ->delete();
+        $score->delete();
 
-        if ($deleted === 0) {
-            return response()->json(['error' => 'Score not found'], 404);
-        }
-
-        return response()->json(null, 204);
+        return response()->json(['message' => 'Score deleted successfully'], 200);
     }
 }

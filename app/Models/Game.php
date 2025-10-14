@@ -25,6 +25,10 @@ class Game extends Model
 {
 	protected $table = 'games';
 
+	protected $casts = [
+		'created_at' => 'datetime:d/m/Y à H:i',
+	];
+
 	protected $fillable = [
 		'name',
 		'user_id'

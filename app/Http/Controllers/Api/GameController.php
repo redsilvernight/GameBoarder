@@ -7,6 +7,7 @@ use App\Models\Game;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Validation\Rule;
 
 class GameController extends Controller implements HasMiddleware
 {
@@ -30,14 +31,17 @@ class GameController extends Controller implements HasMiddleware
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255'
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('games')->where(function ($query) use ($request) {
+                    return $query->where('user_id', $request->user()->id);
+                })
+            ]
         ]);
-        
-        $game = $request->user()->games()->create($validated);
 
-        if ($game->user_id !== $request->user()->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
+        $game = $request->user()->games()->create($validated);
 
         return response()->json($game, 201);
     }
@@ -85,6 +89,6 @@ class GameController extends Controller implements HasMiddleware
             }
         }
         $game->delete();
-        return response()->json(null, 204);
+        return response()->json(['message' => 'Game deleted successfully'], 200);
     }
 }

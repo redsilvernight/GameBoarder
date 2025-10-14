@@ -16,12 +16,14 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/me', [AuthController::class, 'me']);
     Route::apiResource('users', UserController::class);
     
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::apiResource('games', GameController::class);
 
+    Route::post('/players/by-name', [PlayerController::class, 'getByName']);
     Route::apiResource('players', PlayerController::class);
 
     Route::get('/leaderboards/{leaderboard}/paginate', [LeaderboardController::class, 'showWithPagination']);
@@ -31,5 +33,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('scores', [ScoreController::class, 'index']);
     Route::post('scores/highscore', [ScoreController::class, 'storeHighScore']);
     Route::post('scores', [ScoreController::class, 'store']);
-    Route::delete('scores', [ScoreController::class, 'destroy']);
+    Route::delete('scores/{score}', [ScoreController::class, 'destroy']);
 });

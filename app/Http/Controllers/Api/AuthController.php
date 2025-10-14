@@ -47,6 +47,10 @@ class AuthController extends Controller
 
         $user = Auth::user();
 
+        // Supprimer tous les tokens existants de l'utilisateur
+        $user->tokens()->delete();
+
+        // Créer un nouveau token
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
@@ -61,5 +65,10 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Logged out successfully']);
+    }
+
+    public function me(Request $request)
+    {
+        return User::with('games')->findOrFail($request->user()->id);
     }
 }

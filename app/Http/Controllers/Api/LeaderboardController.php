@@ -31,22 +31,35 @@ class LeaderboardController extends Controller implements HasMiddleware
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'is_unique' => 'sometimes|boolean',
-            'game_id' => [
-                'required',
-                Rule::exists('games', 'id')->where('user_id', $request->user()->id),
-            ],
-        ], [
-            'game_id.exists' => 'Ce jeu ne vous appartient pas ou n’existe pas.',
-        ]);
-
-        $leaderboard = Leaderboard::create($validated);
-
-        return response()->json($leaderboard, 201);
+{
+	try {
+		$validated = $request->validate([
+			'name' => [
+				'required',
+				'string',
+				'max:255',
+				Rule::unique('leaderboards')->where(function ($query) use ($request) {
+					return $query->where('game_id', $request->input('game_id'));
+				})
+			],
+			'is_unique' => 'sometimes|boolean',
+			'game_id' => [
+				'required',
+				Rule::exists('games', 'id')->where('user_id', $request->user()->id),
+			],
+		], [
+			'game_id.exists' => "Ce jeu ne vous appartient pas ou n'existe pas.",
+			'name.unique' => 'Un leaderboard avec ce nom existe déjà pour ce jeu.',
+		]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        $firstError = array_values($e->errors())[0][0];
+        return response()->json(['error' => $firstError], 422);
     }
+
+    $leaderboard = Leaderboard::create($validated);
+
+    return response()->json($leaderboard, 201);
+}
 
     public function show(Request $request, Leaderboard $leaderboard)
     {
@@ -56,7 +69,15 @@ class LeaderboardController extends Controller implements HasMiddleware
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
         }
-        return $leaderboard->load('scores')->makeHidden('game');
+
+        $leaderboard->load([
+            'scores' => function ($query) {
+                $query->orderBy('score', 'desc')
+                    ->with('player:id,name');
+            }
+        ])->makeHidden('game');
+
+        return $leaderboard;
     }
 
     public function showWithPagination(Request $request, Leaderboard $leaderboard)
@@ -107,7 +128,7 @@ class LeaderboardController extends Controller implements HasMiddleware
             }
         }
         $leaderboard->delete();
-        return response()->json(null, 204);
+        return response()->json(['message' => 'Leaderboard deleted successfully'], 200);
     }
 
     public function getPlayerScore(Request $request)
