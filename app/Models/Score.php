@@ -9,10 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Score extends Model
 {
 	protected $table = 'scores';
-	// SUPPRIME ces deux lignes :
-	// public $incrementing = false;
-	// protected $primaryKey = null;
-
+	
 	protected $casts = [
 		'created_at' => 'datetime:d/m/Y à H:i',
 		'player_id' => 'int',

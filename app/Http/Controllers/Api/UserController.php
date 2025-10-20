@@ -36,11 +36,11 @@ class UserController extends Controller implements HasMiddleware
     public function destroy(Request $request, User $user)
     {
         if ($request->user()->role != "admin") {
-            if ($user->user_id !== $request->user()->id) {
+            if ($user->id !== $request->user()->id) {
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
         }
         $user->delete();
-        return response()->json(null, 204);
+        return response()->json(['message' => 'User deleted successfully'], 200);
     }
 }
