@@ -103,8 +103,7 @@ return [
     'enum_cases_description_strategy' => 'description',
 
     'middleware' => [
-        'web',
-        RestrictedDocsAccess::class,
+        'web'
     ],
 
     'extensions' => [],
