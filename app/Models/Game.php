@@ -27,12 +27,33 @@ class Game extends Model
 
 	protected $casts = [
 		'created_at' => 'datetime:d/m/Y à H:i',
+		'updated_at' => 'datetime:d/m/Y à H:i',
+		'max_save_slots' => 'integer'
 	];
 
 	protected $fillable = [
 		'name',
-		'user_id'
+		'user_id',
+		'save_mode',
+		'max_save_slots'
 	];
+
+	public function gameSaves(): HasMany
+	{
+		return $this->hasMany(GameSave::class);
+	}
+
+	protected static function booted(): void
+	{
+		static::deleting(function (Game $game) {
+			foreach ($game->gameSaves as $save) {
+				if (\Storage::exists($save->file_path)) {
+					\Storage::delete($save->file_path);
+				}
+			}
+		});
+	}
+
 
 	public function user(): BelongsTo
 	{

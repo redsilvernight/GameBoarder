@@ -25,9 +25,6 @@ class GameController extends Controller implements HasMiddleware
         return Game::all();
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -37,9 +34,19 @@ class GameController extends Controller implements HasMiddleware
                 'max:255',
                 Rule::unique('games')->where(function ($query) use ($request) {
                     return $query->where('user_id', $request->user()->id);
-                })
-            ]
+                }),
+            ],
+            'save_mode' => ['required', 'string', 'in:single,multiple'], // adapte selon tes modes
+            'max_save_slots' => ['nullable', 'integer', 'min:1'],
         ]);
+
+        // Si le mode est "single", forcer max_save_slots à 1
+        if ($validated['save_mode'] === 'single') {
+            $validated['max_save_slots'] = 1;
+        }
+
+        // Sinon, valeur par défaut si non définie (optionnel)
+        $validated['max_save_slots'] = $validated['max_save_slots'] ?? 3;
 
         $game = $request->user()->games()->create($validated);
 

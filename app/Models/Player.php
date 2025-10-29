@@ -46,4 +46,20 @@ class Player extends Model
 	{
 		return $this->belongsTo(Game::class);
 	}
+
+	public function gameSaves(): HasMany
+	{
+		return $this->hasMany(GameSave::class);
+	}
+
+	protected static function booted(): void
+	{
+		static::deleting(function (Player $player) {
+			foreach ($player->gameSaves as $save) {
+				if (\Storage::exists($save->file_path)) {
+					\Storage::delete($save->file_path);
+				}
+			}
+		});
+	}
 }

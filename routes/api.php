@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GameController;
 use App\Http\Controllers\Api\LeaderboardController;
 use App\Http\Controllers\Api\PlayerController;
+use App\Http\Controllers\API\SaveController;
 use App\Http\Controllers\Api\ScoreController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
@@ -34,4 +35,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('scores/highscore', [ScoreController::class, 'storeHighScore']);
     Route::post('scores', [ScoreController::class, 'store']);
     Route::delete('scores/{score}', [ScoreController::class, 'destroy']);
+
+    Route::get('saves/{game}', [SaveController::class, 'allSaves']);
+    Route::delete('saves/{save}', [SaveController::class, 'destroy']);
+    
+    Route::prefix('saves/{game}/{player}')->group(function () {
+        Route::get('/', [SaveController::class, 'index']);
+        Route::post('/', [SaveController::class, 'store'])->middleware('throttle:60,1');
+        Route::get('/{slot}', [SaveController::class, 'show']);
+    });
 });
