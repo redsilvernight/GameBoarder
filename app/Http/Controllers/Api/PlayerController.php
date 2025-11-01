@@ -118,6 +118,31 @@ class PlayerController extends Controller implements HasMiddleware
         return response()->json($player);
     }
 
+    public function authenticate(Request $request)
+    {
+        $validated = $request->validate([
+            'player_name' => 'required|string',
+            'player_password' => 'required|string',
+            'game_id' => [
+                'required',
+                'exists:games,id',
+                Rule::exists('games', 'id')->where('user_id', $request->user()->id)
+            ],
+        ], [
+            'game_id.exists' => "Ce jeu ne vous appartient pas ou n'existe pas.",
+        ]);
+
+        $player = Player::where('name', $validated['player_name'])
+            ->where('game_id', $validated['game_id'])
+            ->first();
+
+        if (!$player || !Hash::check($validated['player_password'], $player->password)) {
+            return response()->json(['error' => 'Invalid credentials'], 401);
+        }
+
+        return response()->json($player);
+    }
+    
     /**
      * Remove the specified resource from storage.
      */

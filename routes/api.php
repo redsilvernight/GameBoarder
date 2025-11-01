@@ -19,12 +19,13 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::apiResource('users', UserController::class);
-    
+
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::apiResource('games', GameController::class);
 
     Route::post('/players/by-name', [PlayerController::class, 'getByName']);
+    Route::post('/players/authenticate', [PlayerController::class, 'authenticate']);
     Route::apiResource('players', PlayerController::class);
 
     Route::get('/leaderboards/{leaderboard}/paginate', [LeaderboardController::class, 'showWithPagination']);
@@ -38,7 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('saves/{game}', [SaveController::class, 'allSaves']);
     Route::delete('saves/{save}', [SaveController::class, 'destroy']);
-    
+
     Route::prefix('saves/{game}/{player}')->group(function () {
         Route::get('/', [SaveController::class, 'index']);
         Route::post('/', [SaveController::class, 'store'])->middleware('throttle:60,1');
