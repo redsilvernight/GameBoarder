@@ -4,7 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GameController;
 use App\Http\Controllers\Api\LeaderboardController;
 use App\Http\Controllers\Api\PlayerController;
-use App\Http\Controllers\API\SaveController;
+use App\Http\Controllers\Api\SaveController;
 use App\Http\Controllers\Api\ScoreController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
